@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     GITHUB_WEBHOOK_SECRET: str = ""
     ANTHROPIC_API_KEY: str = ""
     SLACK_BOT_TOKEN: str = ""
+    SLACK_CHANNEL: str = "pipeline-alerts"
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "https://pipelineiq.dev"]
