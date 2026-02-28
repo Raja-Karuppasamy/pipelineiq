@@ -60,6 +60,18 @@ async def submit_pipeline_run(
 
     return APIResponse(success=True, data=stored)
 
+@router.get("/runs", response_model=APIResponse)
+async def get_pipeline_runs(
+    limit: int = 50,
+    auth: dict = Depends(verify_api_key),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """Get pipeline runs for the authenticated org."""
+    result = supabase.table("pipeline_runs").select("*").eq(
+        "org_id", auth["org_id"]
+    ).order("created_at", desc=True).limit(limit).execute()
+
+    return APIResponse(success=True, data={"runs": result.data or []})
 
 @router.get("/stats/{repo_owner}/{repo_name}", response_model=APIResponse)
 async def get_pipeline_stats(
