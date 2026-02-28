@@ -32,6 +32,9 @@ app.include_router(insights.router, prefix="/api/v1/insights", tags=["AI Insight
 app.include_router(environments.router, prefix="/api/v1/environments", tags=["Environments"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 
+from app.routers import billing
+app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
+
 @app.get("/")
 async def root():
     return {"product": "PipelineIQ", "version": "0.1.0", "docs": "/docs", "status": "operational"}

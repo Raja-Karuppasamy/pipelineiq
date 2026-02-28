@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     SLACK_CHANNEL: str = "pipeline-alerts"
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID: str = ""
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "https://pipelineiq.dev"]
 
     class Config:
