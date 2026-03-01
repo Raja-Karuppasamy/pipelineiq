@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PRICE_ID: str = ""
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "https://pipelineiq.dev"]
-
+    RESEND_API_KEY: str = ""
     class Config:
         env_file = ".env"
         case_sensitive = True

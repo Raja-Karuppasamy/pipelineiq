@@ -33,8 +33,16 @@ async def run_ai_diagnosis(run: dict, org_id: str, supabase: Client):
 
         print(f"✅ AI insight generated: {insight.get('title')}")
 
-        # Send Slack alert
+       # Send Slack alert
         await send_pipeline_alert(insight, run)
+
+        # Send email alert
+        from app.services.email import send_failure_email
+        org = supabase.table("organizations").select("billing_email").eq("id", org_id).single().execute()
+        alert_email = org.data.get("billing_email") if org.data else None
+        if alert_email:
+            await send_failure_email(insight, run, alert_email)
+
 
     except Exception as e:
         print(f"❌ AI diagnosis failed: {e}")
