@@ -108,3 +108,20 @@ async def get_billing_status(
         "runs_this_month": runs_this_month.count or 0,
         "limit": 50 if org.data.get("plan") == "free" else -1,
     })
+@router.post("/email", response_model=APIResponse)
+async def set_alert_email(
+    request: Request,
+    auth: dict = Depends(verify_api_key),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """Set the email address for pipeline failure alerts."""
+    body = await request.json()
+    email = body.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email required")
+
+    supabase.table("organizations").update({
+        "billing_email": email
+    }).eq("id", auth["org_id"]).execute()
+
+    return APIResponse(success=True, data={"message": f"Alert email set to {email}"})
