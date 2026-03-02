@@ -61,7 +61,7 @@ async def send_failure_email(insight: dict, run: dict, to_email: str):
 
     try:
         resend.Emails.send({
-            "from": "PipelineIQ Alerts <onboarding@resend.dev>",
+            "from": "PipelineIQ <alerts@pipelineiq.dev>",
             "to": to_email,
             "subject": f"{severity_emoji} Pipeline Failure: {insight.get('title', 'Unknown Error')} — {run.get('repo_full_name', '')}",
             "html": html,

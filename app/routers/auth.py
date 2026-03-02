@@ -64,7 +64,7 @@ async def send_welcome_email(email: str, name: str, api_key: str):
     """
     try:
         resend.Emails.send({
-            "from": "PipelineIQ <onboarding@resend.dev>",
+            "from": "PipelineIQ <alerts@pipelineiq.dev>",
             "to": email,
             "subject": "Your PipelineIQ API key is ready 🚀",
             "html": html,
