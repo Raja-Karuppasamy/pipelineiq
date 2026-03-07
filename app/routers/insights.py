@@ -29,6 +29,7 @@ async def resolve_insight(
         {"resolved_at": "now()"}
     ).eq("id", insight_id).eq("org_id", auth["org_id"]).execute()
     return APIResponse(success=True, data=result.data[0] if result.data else {})
+
 @router.get("/dora", response_model=APIResponse)
 async def get_dora_metrics(
     days: int = Query(default=30, le=90),
@@ -130,4 +131,79 @@ async def get_dora_metrics(
         "lead_time": {"value": avg_duration, "unit": "minutes", "rating": lt_rating},
         "period_days": days,
         "total_runs": total,
+    })
+
+@router.get("/recurring-failures", response_model=APIResponse)
+async def get_recurring_failures(
+    days: int = Query(default=30, le=90),
+    min_occurrences: int = Query(default=3),
+    auth: dict = Depends(verify_api_key),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """Detect recurring failure patterns across pipeline runs."""
+    from datetime import datetime, timedelta, timezone
+    from collections import defaultdict
+
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    runs_result = supabase.table("pipeline_runs").select("*").eq(
+        "org_id", auth["org_id"]
+    ).eq("status", "failure").gte("created_at", since).order(
+        "created_at", desc=False
+    ).execute()
+
+    failures = runs_result.data or []
+
+    if not failures:
+        return APIResponse(success=True, data={"patterns": [], "period_days": days, "total_failures": 0})
+
+    insights_result = supabase.table("insights").select("*").eq(
+        "org_id", auth["org_id"]
+    ).gte("created_at", since).execute()
+
+    insights_by_run = {}
+    for ins in (insights_result.data or []):
+        insights_by_run[ins.get("pipeline_run_id")] = ins
+
+    patterns = defaultdict(list)
+    for run in failures:
+        insight = insights_by_run.get(run["id"])
+        signature = f"{run['repo_full_name']}::{run['workflow_name']}"
+        patterns[signature].append({"run": run, "insight": insight})
+
+    recurring = []
+    for signature, occurrences in patterns.items():
+        if len(occurrences) >= min_occurrences:
+            parts = signature.split("::")
+            repo = parts[0]
+            workflow = parts[1]
+
+            latest_insight = occurrences[-1]["insight"]
+
+            from dateutil import parser as dateparser
+            timestamps = [dateparser.parse(o["run"]["created_at"]) for o in occurrences]
+            first_seen = min(timestamps)
+            last_seen = max(timestamps)
+            span_days = max((last_seen - first_seen).days, 1)
+            freq_per_week = round(len(occurrences) / span_days * 7, 1)
+
+            recurring.append({
+                "repo": repo,
+                "workflow": workflow,
+                "occurrences": len(occurrences),
+                "first_seen": first_seen.isoformat(),
+                "last_seen": last_seen.isoformat(),
+                "frequency_per_week": freq_per_week,
+                "recommended_fix": latest_insight.get("recommendation") if latest_insight else None,
+                "confidence": latest_insight.get("confidence") if latest_insight else None,
+                "severity": "critical" if len(occurrences) >= 7 else "high" if len(occurrences) >= 5 else "medium",
+            })
+
+    recurring.sort(key=lambda x: x["occurrences"], reverse=True)
+
+    return APIResponse(success=True, data={
+        "patterns": recurring,
+        "period_days": days,
+        "total_failures": len(failures),
+        "recurring_count": len(recurring),
     })
